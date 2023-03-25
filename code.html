@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>User Form</title>
+  <style>
+    form {
+      margin: 20px;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    /* Style the input fields and labels */
+    label, input {
+      display: block;
+      margin: 10px 0;
+    }
+
+    input[type="submit"] {
+      margin-top: 20px;
+    }
+
+    .error {
+      color: red;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <form id="user-form">
+    <label for="name">Name:</label>
+    <input type="text" id="name" name="name" required>
+
+    <label for="email">Email:</label>
+    <input type="email" id="email" name="email" required>
+
+    <label for="phone">Phone:</label>
+    <input type="tel" id="phone" name="phone" required>
+
+    <input type="submit" value="Submit">
+  </form>
+
+  <!-- Display success or error messages here -->
+  <div id="message"></div>
+
+  <script>
+    const form = document.getElementById('user-form');
+    const message = document.getElementById('message');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      message.innerHTML = ''; // Clear any previous messages
+
+      // Get the form data
+      const formData = new FormData(form);
+
+      // Make a GET API call to check if the user exists
+      const email = formData.get('email');
+      const getUserUrl = `https://test-api-v3.myways.ai/user?email=${encodeURIComponent(email)}`;
+      const getUserResponse = await fetch(getUserUrl);
+
+      if (getUserResponse.ok) {
+        // User found
+        const user = await getUserResponse.json();
+        message.innerHTML = `User found: ${user.name}`;
+      } else if (getUserResponse.status === 404) {
+        // User not found, make a POST API call to create the user
+        const postUserUrl = 'https://test-api-v3.myways.ai/user';
+        const postUserResponse = await fetch(postUserUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(Object.fromEntries(formData.entries())) // Convert the form data to a JSON object
+        });
+
+        if (postUserResponse.ok) {
+          // User created successfully
+          const user = await postUserResponse.json();
+          message.innerHTML = `User created successfully: ${user.name}`;
+        } else {
+          // Error creating user
+          const error = await postUserResponse.json();
+          message.innerHTML = `<div class="error">Error creating user: ${error.message}</div>`;
+        }
+      } else {
+        // Error checking for user
+        const error = await getUserResponse.json();
+        message.innerHTML = `<div class="error">Error checking for user: ${error.message}</div>`;
+      }
+    });
+  </script>
+</body>
+</html>
